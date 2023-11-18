@@ -87,7 +87,7 @@ func start() error {
 	}
 
 	ptOps := &collect.Options{
-		Type:     "slowlog",
+		Type:     "pt",
 		Ext:      "-pt.log",
 		Store:    store,
 		EventHub: hub,
