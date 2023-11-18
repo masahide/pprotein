@@ -37,14 +37,7 @@ func start() error {
 	}
 	e.GET("/*", echo.WrapHandler(http.FileServer(http.FS(fs))))
 
-	e.GET("/pt/:id", func(c echo.Context) error {
-		id := c.Param("id")
-		if id == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "id is required")
-		}
-
-		return c.File("data/pt-" + id)
-	})
+	e.Static("/pt", "data")
 
 	api := e.Group("/api", func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
