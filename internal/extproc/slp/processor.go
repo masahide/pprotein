@@ -32,7 +32,6 @@ func (p *processor) Process(snapshot *collect.Snapshot) (io.ReadCloser, error) {
 
 	res, err := cmd.Output()
 	if err != nil {
-		log.Println(string(res))
 		return nil, fmt.Errorf("external process aborted: %w", err)
 	}
 
