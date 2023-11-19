@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/kaz/pprotein/internal/collect"
 )
@@ -13,6 +15,11 @@ type (
 	processor struct {
 		confPath string
 	}
+)
+
+const (
+	dbTypeMySQL       = "my"
+	dbTypePostgreSQL  = "pg"
 )
 
 func (p *processor) Cacheable() bool {
@@ -25,7 +32,19 @@ func (p *processor) Process(snapshot *collect.Snapshot) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("failed to find snapshot body: %w", err)
 	}
 
-	cmd := exec.Command("slp", "my", "--config", p.confPath, "--output", "standard", "--format", "tsv", "--file", bodyPath)
+	var dbType string
+	dbTypeEnv, ok := os.LookupEnv("DB_TYPE")
+	if !ok {
+		dbType = dbTypeMySQL
+	} else {
+		if strings.Contains(dbTypeEnv, "p") {
+			dbType = dbTypeMySQL
+		} else {
+			dbType = dbTypeMySQL
+		}
+	}
+
+	cmd := exec.Command("slp", dbType, "--config", p.confPath, "--output", "standard", "--format", "tsv", "--file", bodyPath)
 
 	res, err := cmd.Output()
 	if err != nil {
