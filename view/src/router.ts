@@ -8,6 +8,7 @@ import PProfEntry from "./components/PProfEntry.vue";
 import SettingList from "./components/SettingList.vue";
 import SlowLogEntry from "./components/SlowLogEntry.vue";
 import MemoEntry from "./components/MemoEntry.vue";
+import PtEntry from "./components/PtEntry.vue";
 
 export default createRouter({
   history: createWebHashHistory(),
@@ -62,6 +63,13 @@ export default createRouter({
             title: "memo:{{id}} | group:{{gid}}",
           },
         },
+        {
+          path: "pt/:id/",
+          component: PtEntry,
+          meta: {
+            title: "pt:{{id}} | group:{{gid}}",
+          },
+        },
       ],
     },
     {
@@ -113,6 +121,13 @@ export default createRouter({
       component: SlowLogEntry,
       meta: {
         title: "slowlog:{{id}}",
+      },
+    },
+    {
+      path: "/pt/:id/",
+      component: PtEntry,
+      meta: {
+        title: "pt:{{id}}",
       },
     },
     {
