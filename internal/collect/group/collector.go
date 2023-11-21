@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -107,6 +108,12 @@ func (cl *Collector) collectAll(c echo.Context) error {
 		})
 	}
 
+	if _, ok := os.LookupEnv("GRAFANA_URL"); ok {
+		eg.Go(func() error {
+			return postGrafanaAnnotation(grpId)
+		})
+	}
+
 	if err := eg.Wait(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to collect: %v", err))
 	}
@@ -138,5 +145,54 @@ func (cl *Collector) makeInternalRequest(grpId string, target CollectTarget) err
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to send request: unexpected status code: %d", resp.StatusCode)
 	}
+	return nil
+}
+
+type grafanaAnnotationBody struct {
+	Text    string   `json:"text,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+	Time    int64    `json:"time,omitempty"`
+	TimeEnd int64    `json:"timeEnd,omitempty"`
+}
+
+// Grafanaにベンチマークの部分のAnnotationを作る
+func postGrafanaAnnotation(grpId string) error {
+	now := time.Now()
+	nowUnixTime := now.UnixMilli()
+	endUnixTime := now.Add(time.Minute).UnixMilli()
+	body, err := json.Marshal(grafanaAnnotationBody{
+		Text:    "benchmark at " + grpId,
+		Tags:    []string{"bench"},
+		Time:    nowUnixTime,
+		TimeEnd: endUnixTime,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	grafanaBaseURL, ok := os.LookupEnv("GRAFANA_URL")
+	if !ok {
+		grafanaBaseURL = "http://grafana:3000"
+	}
+
+	grafanaURL := grafanaBaseURL + "/api/annotations"
+
+	req, err := http.NewRequest(http.MethodPost, grafanaURL, bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", os.Getenv("GRAFANA_TOKEN"))
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to post to grafana: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to create annotation in grafana: %w", err)
+	}
+
 	return nil
 }
